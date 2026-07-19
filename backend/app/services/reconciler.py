@@ -6,6 +6,7 @@ from app.services.matcher import (
     calculate_match_score,
     MATCH_THRESHOLD,
 )
+from app.services.conflict_detector import ConflictDetector
 
 
 class Reconciler:
@@ -15,6 +16,8 @@ class Reconciler:
     Strategy (Greedy Matching):
 
     """
+    def __init__(self):
+        self.conflict_detector = ConflictDetector()
 
     def reconcile(
         self,
@@ -48,13 +51,15 @@ class Reconciler:
 
                 used_calendar_ids.add(best_match.source_id)
 
-                unified.append(
-                    UnifiedMeeting(
-                        crm=crm,
-                        calendar=best_match,
-                        match_score=best_score,
-                    )
-                )
+                meeting = UnifiedMeeting(
+                    crm=crm,
+                    calendar=best_match,
+                    match_score=best_score,
+                        )
+
+                meeting.conflicts = self.conflict_detector.detect(meeting)
+
+                unified.append(meeting)
 
             # CRM only
             else:
