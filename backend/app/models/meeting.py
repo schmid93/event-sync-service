@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import Optional
 
 @dataclass
-class meeting:
+class Meeting:
     # Required fields (no defaults) first
     source: str
     source_id: str
