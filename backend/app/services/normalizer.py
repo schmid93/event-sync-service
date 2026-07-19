@@ -1,19 +1,19 @@
-from app.models.meeting import meeting
+from app.models.meeting import Meeting
 from datetime import datetime
 from app.utils.datetime_parser import parse_datetime, parse_iso_datetime
 
 
-def normalize_crm(record: dict) -> meeting:
+def normalize_crm(record: dict) -> Meeting:
     pass
 
 
-def normalize_calendar(record: dict) -> meeting:
+def normalize_calendar(record: dict) -> Meeting:
     pass
 
     
 
 
-def normalize_crm(record: dict) -> meeting:
+def normalize_crm(record: dict) -> Meeting:
 
     start = None
 
@@ -24,7 +24,7 @@ def normalize_crm(record: dict) -> meeting:
             record["meeting_time"]
         )
 
-    return meeting(
+    return Meeting(
         source="crm",
         source_id=record["crm_id"],
 
@@ -44,14 +44,14 @@ def normalize_crm(record: dict) -> meeting:
         notes=record["notes"]
     )
 
-def normalize_calendar(record: dict) -> meeting:
+def normalize_calendar(record: dict) -> Meeting:
 
     if record["start_time"]:
         start = parse_iso_datetime(
         record["start_time"]
         )
 
-    return meeting(
+    return Meeting(
         source="calendar",
         source_id=record["event_id"],
 

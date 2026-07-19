@@ -10,10 +10,12 @@ from app.services.normalizer import (
     normalize_crm
 )
 
+from app.services.reconciler import Reconciler
+
 app = FastAPI()
 
 
-@app.get("/meetings/raw")
+@app.get("/meetings")
 def meetings():
 
     crm = [
@@ -26,7 +28,9 @@ def meetings():
         for record in load_calendar_events()
     ]
 
-    return {
-        "crm": crm,
-        "calendar": calendar
-    }
+    reconciler = Reconciler()
+
+    return reconciler.reconcile(
+        crm,
+        calendar,
+    )
