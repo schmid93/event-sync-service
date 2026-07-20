@@ -56,9 +56,7 @@ class ConflictDetector:
         if (
             crm_status
             and calendar_status
-            and crm_status != calendar_status
-        ):
-
+            and crm_status.strip().lower() != calendar_status.strip().lower() ):
             conflicts["status"] = {
                 "crm": crm_status,
                 "calendar": calendar_status,

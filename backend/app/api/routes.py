@@ -43,4 +43,9 @@ def get_meetings():
         calendar_meetings,
     )
 
+    unified.sort(
+    key=lambda meeting: len(meeting.conflicts),
+    reverse=True,
+)
+
     return unified
