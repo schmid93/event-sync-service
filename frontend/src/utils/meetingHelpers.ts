@@ -11,7 +11,7 @@ export function getMeetingTitle(meeting: UnifiedMeeting): string {
 export function getCompany(meeting: UnifiedMeeting): string {
     return (
         meeting.crm?.client_company ??
-        "—"
+        "Not available"
     );
 }
 

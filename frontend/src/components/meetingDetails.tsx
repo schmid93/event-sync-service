@@ -8,7 +8,7 @@ type Props = {
 
 function renderValue(value?: string) {
 
-    return value || "—";
+    return value || "Not available";
 
 }
 

@@ -40,10 +40,10 @@ export default function MeetingRow({
                 onClick={onToggle}
 
                 style={{
-
                     cursor: "pointer",
-
-                }}
+                    backgroundColor: expanded ? "#2b2b2b" : "transparent",
+                    transition: "background-color 0.2s ease",
+                    }}
 
             >
 
