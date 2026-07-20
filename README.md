@@ -1,10 +1,40 @@
 # Event Sync Service
 
-A full-stack take-home assessment built with **Python (FastAPI)** and **React + TypeScript**.
+Take-home assessment for a Full Stack Engineer role.
 
-## Overview
+This project ingests meeting data from two independent systems (CRM and Calendar), reconciles records that refer to the same real-world meeting, detects data conflicts between sources, and exposes the unified results through a REST API and a React frontend.
 
-This application ingests meeting data from two independent sources (a CRM and a calendar), reconciles records that refer to the same real world meeting, detects data conflicts, and exposes the unified result through a REST API and a simple web interface.
+---
+
+# 🚀 Quick Start
+
+After cloning the repository:
+
+```bash
+python start.py
+```
+
+The launcher automatically:
+
+- verifies that the backend virtual environment exists
+- verifies that frontend dependencies are installed
+- starts the FastAPI backend
+- starts the React development server
+- opens the application in your default browser
+
+If any required dependency is missing, the launcher will provide instructions on how to install it.
+
+---
+
+## Features
+
+- Ingests data from **CRM** and **Calendar** JSON sources.
+- Normalizes both sources into a common internal model.
+- Reconciles meetings using a weighted matching algorithm.
+- Detects conflicting values between sources.
+- Exposes a REST API using **FastAPI**.
+- Provides a simple React UI for browsing reconciled meetings.
+- Allows expanding a meeting row to compare CRM and Calendar data side-by-side.
 
 ---
 
@@ -14,8 +44,8 @@ This application ingests meeting data from two independent sources (a CRM and a 
 
 - Python 3.12
 - FastAPI
-- Pydantic
 - Uvicorn
+- Dataclasses
 
 ### Frontend
 
@@ -25,98 +55,371 @@ This application ingests meeting data from two independent sources (a CRM and a 
 
 ---
 
+## Assumptions
+
+Since the original specification intentionally leaves several behaviors undefined, the following assumptions were made:
+
+- meetings with a score of **70 or higher** are considered matches
+- comparisons between text fields are case-insensitive
+- missing values are preserved rather than inferred
+- each Calendar meeting can only match one CRM meeting
+- the highest scoring unused Calendar record is selected during reconciliation
+
+---
+
+## Architecture
+
+The application is organized as a simple reconciliation pipeline.
+
+```mermaid
+flowchart LR
+    A[CRM JSON] --> B[Loader]
+    C[Calendar JSON] --> B
+    B --> D[Normalizer]
+    D --> E[Matcher]
+    E --> F[Reconciler]
+    F --> G[Conflict Detector]
+    G --> H[FastAPI]
+    H --> I[React UI]
+```
+
+### Responsibilities
+
+| Component | Responsibility |
+|-----------|----------------|
+| Loader | Reads raw JSON files |
+| Normalizer | Converts source-specific records into a common Meeting model |
+| Matcher | Computes similarity scores |
+| Reconciler | Produces unified meetings |
+| Conflict Detector | Detects conflicting values |
+| API | Exposes reconciled meetings |
+| Frontend | Displays reconciled meetings and source comparison |
+
+---
+
 ## Project Structure
 
 ```text
 event-sync-service/
-│
-├── backend/                 # FastAPI REST API
+├── backend/
 │   ├── app/
-│   └── requirements.txt
+│   │   ├── api/
+│   │   ├── models/
+│   │   ├── services/
+│   │   ├── utils/
+│   │   └── main.py
+│   ├── data/
+│   ├── requirements.txt
+│   └── .venv/
 │
-├── frontend/                # React + TypeScript application
-│   └── src/
+├── frontend/
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── hooks/
+│   │   ├── types/
+│   │   ├── utils/
+│   │   └── App.tsx
+│   └── package.json
 │
-├── docs/                    # Architecture decisions and documentation
+├── docs/
+│   └── AI_NOTES.md
 │
+├── start.py
 └── README.md
 ```
 
-The project is cleanly separated into two independent applications to improve maintainability and keep frontend and backend concerns isolated.
+---
+
+## Running the Project
+
+### Recommended
+
+Simply run:
+
+```bash
+python start.py
+```
+
+This starts both the backend and frontend with a single command.
 
 ---
 
-## Current Progress
+### Manual Setup
 
-The initial project setup has been completed:
+If you prefer to run each service independently:
 
-- ✅ Python virtual environment configured
-- ✅ FastAPI backend initialized
-- ✅ Health check endpoint (`/health`)
-- ✅ React + Vite frontend scaffolded
-- ✅ Project structure defined
-- ✅ Git repository initialized
-
-The backend currently exposes a simple health endpoint to verify that the API is running correctly.
-
----
-
-# Running the Project
-
-## Backend
+### Backend
 
 ```bash
 cd backend
 
 python -m venv .venv
-```
 
-### Windows
-
-```bash
+# Windows
 .venv\Scripts\activate
-```
 
-### macOS / Linux
-
-```bash
+# Linux / macOS
 source .venv/bin/activate
-```
 
-Install dependencies:
-
-```bash
 pip install -r requirements.txt
-```
 
-Start the API:
-
-```bash
 uvicorn app.main:app --reload
 ```
 
-The backend will be available at:
+Backend:
 
-- API: http://localhost:8000
-- Swagger UI: http://localhost:8000/docs
+- http://localhost:8000
+
+Swagger:
+
+- http://localhost:8000/docs
 
 ---
 
-## Frontend
+### Frontend
 
 ```bash
 cd frontend
 
 npm install
+
 npm run dev
 ```
 
-The frontend will be available at:
+Frontend:
 
 - http://localhost:5173
 
 ---
 
-## Notes
+## API Endpoints
 
-This project is being developed step by step. As new functionality is added, architectural decisions, assumptions, and trade-offs will be documented to explain the reasoning behind the implementation.
+### GET /health
+
+Returns service health.
+
+Example:
+
+```json
+{
+    "status": "ok"
+}
+```
+
+---
+
+### GET /meetings
+
+Returns the reconciled meeting list.
+
+Example:
+
+```json
+[
+  {
+    "match_score": 95,
+    "crm": { },
+    "calendar": { },
+    "conflicts": {
+      "location": {
+        "crm": "HQ - Conference Room B",
+        "calendar": "Conference Room B"
+      }
+    }
+  }
+]
+```
+
+---
+
+## Matching Strategy
+
+The two upstream systems do not share a common identifier.
+
+Instead of exact matching, meetings are reconciled using a weighted scoring algorithm.
+
+### Scoring Rules
+
+| Rule | Score |
+|------|------:|
+| Same calendar day | 30 |
+| Start time within ±30 minutes | 25 |
+| Same owner / organizer | 15 |
+| Company appears in meeting title | 30 |
+
+Maximum score:
+
+**100**
+
+A match is accepted when the score is **70 or higher**.
+
+### Why a Score Instead of Exact Matching?
+
+Exact matching would fail because the provided datasets contain:
+
+- different titles
+- slightly different timestamps
+- names vs email addresses
+- missing values
+- duplicated records
+
+A weighted score produces explainable results while remaining easy to extend.
+
+---
+
+## Conflict Detection
+
+After two meetings have been reconciled, overlapping fields are compared.
+
+Currently checked fields:
+
+- location
+- status
+- start time
+
+Example:
+
+CRM
+
+```text
+HQ - Conference Room B
+```
+
+Calendar
+
+```text
+Conference Room B
+```
+
+Produces
+
+```json
+{
+  "location": {
+    "crm": "HQ - Conference Room B",
+    "calendar": "Conference Room B"
+  }
+}
+```
+
+### String Normalization
+
+Before comparing text fields, values are:
+
+- trimmed
+- converted to lowercase
+
+This prevents false positives such as:
+
+```text
+Confirmed
+confirmed
+```
+
+---
+
+## Frontend
+
+The frontend presents the reconciled meetings as an expandable table.
+
+Each row can be expanded to inspect:
+
+- CRM values
+- Calendar values
+- detected conflicts
+
+Displaying details inline allows users to inspect a meeting without losing their place in the table.
+
+---
+
+## Design Decisions
+
+### Preserve Source Records
+
+Rather than merging everything into a single object, each `UnifiedMeeting` keeps both the CRM record and the Calendar record.
+
+Benefits:
+
+- preserves data provenance
+- simplifies conflict visualization
+- makes reconciliation transparent
+
+---
+
+### Greedy Matching
+
+Each CRM meeting is matched with the highest-scoring unused Calendar meeting.
+
+Benefits:
+
+- one-to-one matching
+- deterministic results
+- avoids duplicate associations
+
+---
+
+### Preserve Missing Values
+
+The application intentionally does **not infer missing information**.
+
+For example, if the CRM does not provide `client_company`, the UI displays **"Not available"** rather than deriving the value from another source.
+
+This keeps the displayed information faithful to its original source.
+
+---
+
+### Expandable Rows
+
+Instead of displaying meeting details in a separate page or modal, the frontend expands the selected row.
+
+This keeps the user in context while comparing values from both systems.
+
+---
+
+## Future Improvements
+
+Given additional time, the project could be extended with:
+
+- RapidFuzz for fuzzy company matching
+- PostgreSQL persistence
+- background synchronization jobs
+- pagination
+- filtering and searching
+- confidence levels (High / Medium / Low)
+- richer conflict models
+- unit tests for matching and reconciliation
+- integration tests for the REST API
+
+---
+
+## AI Collaboration
+
+AI tools were used as a collaborative assistant for:
+
+- discussing reconciliation strategies
+- reviewing implementation ideas
+
+All implementation decisions, code integration, and final design choices were manually reviewed and adapted.
+
+Additional details are available in:
+
+```
+docs/AI_NOTES.md
+```
+
+---
+
+## Time Spent
+
+Approximately **10–12 hours**, including:
+
+- architecture and project design
+- backend implementation
+- normalization
+- reconciliation algorithm
+- conflict detection
+- REST API
+- React frontend
+- documentation
+- testing and polishing
