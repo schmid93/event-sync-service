@@ -15,5 +15,5 @@ class Meeting:
     client_company: Optional[str] = None
     start: Optional[datetime] = None
     location: Optional[str] = None
-    status: str = "pending"          # I gave a reasonable default
+    status: str = "pending"          
     notes: Optional[str] = None
