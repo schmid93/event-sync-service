@@ -412,7 +412,7 @@ docs/AI_NOTES.md
 
 ## Time Spent
 
-Approximately **10–12 hours**, including:
+Approximately **8–10 hours**, including:
 
 - architecture and project design
 - backend implementation
